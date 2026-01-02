@@ -14,7 +14,7 @@ class Patient(models.Model):
     
     # Status
     is_expired = models.BooleanField(default=False)
-    current_status = models.CharField(max_length=50, default='Active', choices=[('Active', 'Active'), ('Stable', 'Stable'), ('Moderate', 'Moderate'), ('Severe', 'Severe')])
+    current_status = models.CharField(max_length=50, default='Stable', choices=[('Stable', 'Stable'), ('Moderate', 'Moderate'), ('Severe', 'Severe')])
 
     # Registration Info
     registration_date = models.DateField(auto_now_add=True)

@@ -139,7 +139,7 @@
         <a href="patients.html">Patients</a>
         <a href="visits.html">Visits</a>
         <a href="equipment.html">Equipment</a>
-        <a href="reports.html">Reports</a>
+        <a href="analytics.html">Analytics</a>
         <a href="gis.html">GIS Map</a>
         <a href="voice.html">Voice Entry</a>
     </div>
@@ -207,7 +207,7 @@
                     <div class="form-group">
                         <label>Current Condition Assessment</label>
                         <select name="condition_assessment">
-                            <option value="Active">Active (Stable)</option>
+                            <option value="Stable">Stable</option>
                             <option value="Moderate">Moderate</option>
                             <option value="Severe">Severe</option>
                         </select>
@@ -345,8 +345,12 @@
                         statusBadge.className = 'status-badge status-expired';
                         statusBadge.innerText = 'Expired';
                     } else {
-                        statusBadge.className = `status-badge status-${data.current_status.toLowerCase()}`;
-                        statusBadge.innerText = data.current_status;
+                        // Normalize Legacy "Active" to "Stable"
+                        let statusText = data.current_status;
+                        if (statusText === 'Active') statusText = 'Stable';
+
+                        statusBadge.className = `status-badge status-${statusText.toLowerCase()}`;
+                        statusBadge.innerText = statusText;
                     }
 
                     // Fill Edit Form

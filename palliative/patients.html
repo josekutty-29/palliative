@@ -90,7 +90,7 @@
         <a href="patients.html">Patients</a>
         <a href="visits.html">Visits</a>
         <a href="equipment.html">Equipment</a>
-        <a href="reports.html">Reports</a>
+        <a href="analytics.html">Analytics</a>
         <a href="gis.html">GIS Map</a>
         <a href="voice.html">Voice Entry</a>
     </div>
@@ -98,10 +98,17 @@
     <div class="main">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h1>Patient Registry</h1>
-            <!-- Button linking to new page -->
-            <button class="btn-premium" onclick="window.location.href='register_patient.html'">
-                <i class="fas fa-plus"></i> Register Patient
-            </button>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-premium" onclick="exportData('excel')" style="background: #10b981;">
+                    <i class="fas fa-file-excel"></i> Export Excel
+                </button>
+                <button class="btn-premium" onclick="exportData('pdf')" style="background: #ef4444;">
+                    <i class="fas fa-file-pdf"></i> Export PDF
+                </button>
+                <button class="btn-premium" onclick="window.location.href='register_patient.html'">
+                    <i class="fas fa-plus"></i> Register Patient
+                </button>
+            </div>
         </div>
 
         <!-- Advanced Search & Filter Toolbar -->
@@ -164,6 +171,14 @@
                         <option value="">All Equipment</option>
                         <!-- Populated by JS -->
                     </select>
+                </div>
+
+                <!-- Clear Button -->
+                <div style="flex: 0;">
+                    <button onclick="clearFilters()"
+                        style="margin-bottom: 2px; padding: 10px; background: none; border: 1px solid #ef4444; color: #ef4444; border-radius: 8px; cursor: pointer;">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
                 </div>
             </div>
         </div>
@@ -341,6 +356,40 @@
                 `;
                 tbody.innerHTML += row;
             });
+        }
+
+        function exportData(format) {
+            // Get current filter values
+            const term = document.getElementById('searchTerm').value;
+            const status = document.getElementById('filterStatus').value;
+            const minAge = document.getElementById('minAge').value;
+            const maxAge = document.getElementById('maxAge').value;
+            const disease = document.getElementById('filterDisease').value;
+            const material = document.getElementById('filterMaterial').value;
+
+            // Build query params
+            const params = new URLSearchParams({
+                format: format,
+                search: term,
+                status: status,
+                min_age: minAge || 0,
+                max_age: maxAge || 150,
+                disease: disease,
+                material: material
+            });
+
+            // Trigger download
+            window.location.href = `${API_BASE}/export?${params.toString()}`;
+        }
+
+        function clearFilters() {
+            document.getElementById('searchTerm').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('minAge').value = '';
+            document.getElementById('maxAge').value = '';
+            document.getElementById('filterDisease').value = '';
+            document.getElementById('filterMaterial').value = '';
+            filterPatients();
         }
     </script>
 

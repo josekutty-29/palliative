@@ -80,7 +80,7 @@ def patient_list(request):
                 
             # Map 'condition' from form (Stable/Moderate/Severe) to 'current_status' if it matches
             input_condition = data.get('condition')
-            status = 'Active' # Default
+            status = 'Stable' # Default
             if input_condition in ['Stable', 'Moderate', 'Severe', 'Critical', 'Bedridden']:
                 status = input_condition
                 # If Status is Bedridden, put it in condition field as well roughly, or keep separate?
@@ -281,6 +281,18 @@ def inventory_detail(request, pk):
     elif request.method == 'PUT':
         try:
             data = json.loads(request.body)
+            
+            # Special case: Restocking (adding to existing count)
+            if 'add_stock' in data:
+                try:
+                    val = int(data['add_stock'])
+                    if val > 0:
+                        item.count += val
+                        item.save()
+                        return JsonResponse({"message": f"Restocked successfully. New total: {item.count}"})
+                except ValueError:
+                    return JsonResponse({"error": "Invalid stock value"}, status=400)
+
             for field, value in data.items():
                 if hasattr(item, field):
                     setattr(item, field, value)
@@ -377,4 +389,261 @@ def inventory_history(request, pk):
             "history": history
         })
         
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+# --- Export Functionality ---
+import openpyxl
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from django.http import HttpResponse
+
+@csrf_exempt
+def export_patients(request):
+    """
+    GET: Export patients to Excel/PDF with filters
+    """
+    if request.method == 'GET':
+        # 1. Base Query
+        queryset = Patient.objects.all()
+
+        # 2. Apply Filters (Same logic as frontend, but in Python)
+        search = request.GET.get('search', '').lower()
+        if search:
+            queryset = queryset.filter(full_name__icontains=search) | queryset.filter(id__icontains=search)
+
+        status = request.GET.get('status', '')
+        if status:
+            if status == 'Alive':
+                queryset = queryset.filter(is_expired=False)
+            elif status == 'Dead':
+                queryset = queryset.filter(is_expired=True)
+            elif status == 'Stable':
+                # Active or Stable
+                queryset = queryset.filter(current_status__in=['Active', 'Stable'], is_expired=False)
+            elif status == 'Bedridden':
+                queryset = queryset.filter(condition='Bedridden', is_expired=False)
+            elif status == 'Not Bedridden':
+                queryset = queryset.filter(condition='Not Bedridden', is_expired=False)
+            else:
+                # Moderate / Severe
+                queryset = queryset.filter(current_status=status, is_expired=False)
+        
+        # Age Range
+        try:
+            min_age = int(request.GET.get('min_age', 0))
+            max_age = int(request.GET.get('max_age', 150))
+            queryset = queryset.filter(age__gte=min_age, age__lte=max_age)
+        except:
+            pass # Ignore invalid age input
+
+        # Disease & Material (Basic string match if provided)
+        disease = request.GET.get('disease', '')
+        if disease:
+            queryset = queryset.filter(disease=disease)
+        
+        # Note: Material filtering in backend would require complex join on Allocation
+        # For simplicity, if material is passed, we might skip implementation or do a subquery
+        # Here we will implement basic material check if needed:
+        material = request.GET.get('material', '')
+        if material:
+             queryset = queryset.filter(allocations__material_name=material).distinct()
+
+        # 3. sorting (Expired at bottom, then ID desc)
+        # Using sorted() for complex sort logic similar to JS
+        patients = list(queryset)
+        patients.sort(key=lambda p: (p.is_expired, -p.id))
+
+        export_format = request.GET.get('format', 'excel')
+
+        if export_format == 'excel':
+            response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename="patients_export.xlsx"'
+            
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Patients"
+
+            # Headers
+            headers = ['ID', 'Name', 'Age', 'Gender', 'Condition', 'Status', 'Disease', 'Allocated Items']
+            ws.append(headers)
+
+            for p in patients:
+                # Get materials string
+                mats = ", ".join([a.material_name for a in p.allocations.all()])
+                
+                # Normalize Status (Active -> Stable)
+                raw_status = p.current_status
+                if raw_status == 'Active':
+                    raw_status = 'Stable'
+                
+                status_display = "Expired" if p.is_expired else raw_status
+                
+                ws.append([
+                    p.id, p.full_name, p.age, p.gender, 
+                    p.condition, status_display, p.disease, mats
+                ])
+            
+            wb.save(response)
+            return response
+
+        elif export_format == 'pdf':
+            response = HttpResponse(content_type='application/pdf')
+            response['Content-Disposition'] = 'attachment; filename="patients_export.pdf"'
+            
+            p = canvas.Canvas(response, pagesize=letter)
+            width, height = letter
+            y = height - 50
+
+            p.setFont("Helvetica-Bold", 16)
+            p.drawString(50, y, "Patient Registry Export")
+            y -= 30
+            
+            p.setFont("Helvetica-Bold", 10)
+            headers = ["ID", "Name", "Age", "Condition", "Status"]
+            x_positions = [50, 100, 250, 300, 450]
+            
+            for i, h in enumerate(headers):
+                p.drawString(x_positions[i], y, h)
+            
+            y -= 20
+            p.setFont("Helvetica", 10)
+
+            for pat in patients:
+                if y < 50:
+                    p.showPage()
+                    y = height - 50
+                
+                # Normalize Status
+                raw_status = pat.current_status
+                if raw_status == 'Active':
+                    raw_status = 'Stable'
+                
+                status_display = "Expired" if pat.is_expired else raw_status
+                
+                p.drawString(x_positions[0], y, str(pat.id))
+                p.drawString(x_positions[1], y, pat.full_name[:25]) # Truncate name
+                p.drawString(x_positions[2], y, str(pat.age))
+                p.drawString(x_positions[3], y, pat.condition)
+                p.drawString(x_positions[4], y, status_display)
+                y -= 15
+            
+            p.showPage()
+            p.save()
+            return response
+
+    return JsonResponse({"error": "Invalid request"}, status=400)
+
+@csrf_exempt
+def export_visits(request):
+    """
+    GET: Export visits (filtered) to Excel/PDF
+    """
+    if request.method == 'GET':
+        # 1. Base Query
+        visits = Visit.objects.select_related('patient').all()
+        
+        # 2. Filtering (Match Frontend Logic: effective_date = scheduled_date || visit_date)
+        date_filter = request.GET.get('date')
+        month_filter = request.GET.get('month')
+        
+        filtered_visits = []
+        for v in visits:
+            # Determine effective date (string format YYYY-MM-DD)
+            eff_date = v.scheduled_date or v.visit_date
+            if not eff_date:
+                continue
+            
+            eff_date_str = str(eff_date)
+            
+            # Apply Filter
+            if date_filter:
+                if eff_date_str != date_filter:
+                    continue
+            elif month_filter:
+                if not eff_date_str.startswith(month_filter):
+                    continue
+            
+            filtered_visits.append(v)
+            
+        # 3. Sort (Date desc)
+        filtered_visits.sort(key=lambda x: (x.scheduled_date or x.visit_date), reverse=True)
+        
+        export_format = request.GET.get('format', 'excel')
+        
+        if export_format == 'excel':
+            response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename="visits_export.xlsx"'
+            
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Visits"
+            
+            headers = ['Date', 'Patient Name', 'Service', 'Condition', 'Status', 'Time Spent']
+            ws.append(headers)
+            
+            for v in filtered_visits:
+                status = "Completed" if v.is_completed else "Scheduled"
+                eff_date = v.scheduled_date or v.visit_date
+                
+                # Normalize Active -> Stable
+                cond = v.condition_assessment
+                if cond == 'Active': cond = 'Stable'
+                
+                ws.append([
+                    eff_date, v.patient.full_name, v.service_performed,
+                    cond, status, v.time_spent
+                ])
+            
+            wb.save(response)
+            return response
+            
+        elif export_format == 'pdf':
+            response = HttpResponse(content_type='application/pdf')
+            response['Content-Disposition'] = 'attachment; filename="visits_export.pdf"'
+            
+            p = canvas.Canvas(response, pagesize=letter)
+            width, height = letter
+            y = height - 50
+            
+            p.setFont("Helvetica-Bold", 16)
+            p.drawString(50, y, "Visits Report")
+            y -= 30
+            
+            p.setFont("Helvetica-Bold", 10)
+            # Table Headers
+            p.drawString(50, y, "Date")
+            p.drawString(130, y, "Patient")
+            p.drawString(250, y, "Service")
+            p.drawString(400, y, "Status")
+            p.drawString(500, y, "Condition")
+            
+            y -= 20
+            p.setFont("Helvetica", 10)
+            
+            for v in filtered_visits:
+                if y < 50:
+                    p.showPage()
+                    y = height - 50
+                
+                status = "Completed" if v.is_completed else "Scheduled"
+                eff_date = str(v.scheduled_date or v.visit_date)
+                
+                 # Normalize Active -> Stable
+                cond = v.condition_assessment or '-'
+                if cond == 'Active': cond = 'Stable'
+                
+                patient_name = v.patient.full_name[:20]
+                service = (v.service_performed or '-')[:25]
+                
+                p.drawString(50, y, eff_date)
+                p.drawString(130, y, patient_name)
+                p.drawString(250, y, service)
+                p.drawString(400, y, status)
+                p.drawString(500, y, cond)
+                y -= 15
+                
+            p.showPage()
+            p.save()
+            return response
+
     return JsonResponse({"error": "Method not allowed"}, status=405)

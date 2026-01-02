@@ -4,6 +4,236 @@
 <head>
     <title>Head Nurse Dashboard</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .dashboard-header {
+            margin-bottom: 30px;
+        }
+
+        .dashboard-header h1 {
+            font-size: 2rem;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+
+        .dashboard-header p {
+            color: #64748b;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: transform 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-content h2 {
+            font-size: 2.2rem;
+            margin: 0;
+            color: white;
+            font-weight: 700;
+        }
+
+        .stat-content p {
+            margin: 5px 0 0;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Gradients */
+        .bg-blue {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+
+        .bg-emerald {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .bg-violet {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+
+        .bg-orange {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+        }
+
+        /* Main Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+        }
+
+        .panel {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #334155;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* List Items (Watchlist) */
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            border-bottom: 1px solid #f1f5f9;
+            transition: 0.2s;
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .list-item:hover {
+            background: #f8fafc;
+        }
+
+        .patient-info strong {
+            display: block;
+            color: #334155;
+            font-size: 1rem;
+        }
+
+        .patient-info span {
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+
+        .badge-severe {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-bedridden {
+            background: #ffedd5;
+            color: #9a3412;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Stock Alert Items */
+        .stock-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: #fff1f2;
+            border: 1px solid #fecdd3;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .stock-item strong {
+            color: #881337;
+            font-size: 0.9rem;
+        }
+
+        .stock-count {
+            color: #e11d48;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        /* Quick Actions - Full Width Header Style */
+        .action-panel h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            color: #334155;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: #475569;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-5px);
+            border-color: #3b82f6;
+            color: #3b82f6;
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.15);
+        }
+
+        .action-btn i {
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        .action-btn span {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+
+            .stats-grid,
+            .action-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -14,51 +244,88 @@
         <a href="patients.html">Patients</a>
         <a href="visits.html">Visits</a>
         <a href="equipment.html">Equipment</a>
-        <a href="reports.html">Reports</a>
+        <a href="analytics.html">Analytics</a>
         <a href="gis.html">GIS Map</a>
         <a href="voice.html">Voice Entry</a>
     </div>
 
     <div class="main">
-        <h1>Dashboard Overview</h1>
+        <div class="dashboard-header">
+            <h1>Overview</h1>
+            <p id="currentDate">loading...</p>
+        </div>
 
-        <div class="cards">
-            <div class="card">
-                <img src="images/patient.png">
-                <h2 id="totalPatients">-</h2>
-                <p>Total Patients</p>
+        <!-- 1. Key Metrics -->
+        <div class="stats-grid">
+            <div class="stat-card bg-blue">
+                <div class="stat-content">
+                    <h2 id="totalPatients">-</h2>
+                    <p>Total Patients</p>
+                </div>
+                <i class="fas fa-users stat-icon"></i>
             </div>
-
-            <div class="card">
-                <img src="images/doctor.png">
-                <h2 id="activePatients">-</h2>
-                <p>Active Patients</p>
+            <div class="stat-card bg-emerald">
+                <div class="stat-content">
+                    <h2 id="stablePatients">-</h2>
+                    <p>Stable Cases</p>
+                </div>
+                <i class="fas fa-smile stat-icon"></i>
             </div>
-
-            <div class="card">
-                <img src="images/hospital.png">
-                <h2 id="criticalCases">-</h2>
-                <p>Critical Cases</p>
+            <div class="stat-card bg-orange">
+                <div class="stat-content">
+                    <h2 id="severePatients">-</h2>
+                    <p>Severe / Critical</p>
+                </div>
+                <i class="fas fa-procedures stat-icon"></i>
             </div>
-
-            <div class="card">
-                <img src="images/calendar.png" style="width: 50px; opacity: 0.8;">
-                <h2 id="visitsToday">-</h2>
-                <p>Visits Completed</p>
+            <div class="stat-card bg-violet">
+                <div class="stat-content">
+                    <h2 id="visitsToday">-</h2>
+                    <p>Visits Today</p>
+                </div>
+                <i class="fas fa-clipboard-check stat-icon"></i>
             </div>
         </div>
 
+        <!-- 2. Quick Actions (Full Width) -->
+        <div class="action-panel">
+            <h3
+                style="margin-bottom: 15px; color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 0.9rem; letter-spacing: 1px;">
+                Quick Actions</h3>
+            <div class="action-grid">
+                <a href="register_patient.html" class="action-btn">
+                    <i class="fas fa-user-plus" style="color: #3b82f6;"></i>
+                    <span>Register Patient</span>
+                </a>
+                <a href="visits.html" class="action-btn">
+                    <i class="fas fa-calendar-alt" style="color: #8b5cf6;"></i>
+                    <span>Schedule Visit</span>
+                </a>
+                <a href="equipment.html" class="action-btn">
+                    <i class="fas fa-box-open" style="color: #10b981;"></i>
+                    <span>Equipment</span>
+                </a>
+                <a href="analytics.html" class="action-btn">
+                    <i class="fas fa-chart-line" style="color: #f59e0b;"></i>
+                    <span>Analytics</span>
+                </a>
+            </div>
+        </div>
 
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            loadStats();
-        });
-
         const API_BASE = 'http://127.0.0.1:8000/api';
 
-        async function loadStats() {
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set Date
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', options);
+
+            loadDashboardData();
+        });
+
+        async function loadDashboardData() {
             try {
                 // 1. Fetch Analytics
                 const res = await fetch(`${API_BASE}/analytics`);
@@ -66,29 +333,24 @@
 
                 // Update Cards
                 document.getElementById('totalPatients').innerText = data.total;
-                document.getElementById('activePatients').innerText = data.status.active;
-                document.getElementById('criticalCases').innerText = data.status.severe;
 
-                // 2. Fetch Visits for Today count
-                const visitRes = await fetch(`${API_BASE}/visits`);
-                const visits = await visitRes.json();
+                const stableCount = (data.status.stable || 0) + (data.status.active || 0);
+                const severeCount = (data.status.severe || 0) + (data.status.critical || 0);
 
-                // Filter for today's visits AND completed (has service_performed)
-                // Use local time, not UTC (toISOString uses UTC)
-                const now = new Date();
-                const offset = now.getTimezoneOffset() * 60000;
-                const today = new Date(now - offset).toISOString().split('T')[0];
+                document.getElementById('stablePatients').innerText = stableCount;
+                document.getElementById('severePatients').innerText = severeCount;
 
-                const todayVisits = visits.filter(v => v.scheduled_date === today && v.service_performed).length;
+                // 2. Visits Today
+                const vRes = await fetch(`${API_BASE}/visits`);
+                const visits = await vRes.json();
+                const today = new Date().toISOString().split('T')[0];
+                const visitsToday = visits.filter(v => (v.scheduled_date === today || v.visit_date === today)).length;
+                document.getElementById('visitsToday').innerText = visitsToday;
 
-                document.getElementById('visitsToday').innerText = todayVisits;
-
-            } catch (e) {
-                console.error("Error loading stats:", e);
+            } catch (error) {
+                console.error("Dashboard Load Error:", error);
             }
         }
-
-
     </script>
 
 </body>

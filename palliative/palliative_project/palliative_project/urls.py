@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.urls import path
-from api.views import patient_list, patient_detail, visit_list, allocation_list, visit_detail, translate_text, get_analytics, inventory_list, inventory_detail, allocation_detail, inventory_history
+from api.views import patient_list, patient_detail, visit_list, allocation_list, visit_detail, translate_text, get_analytics, inventory_list, inventory_detail, allocation_detail, inventory_history, export_patients, export_visits
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -13,6 +13,8 @@ urlpatterns = [
     path('api/visits', visit_list), # For listing all / creating generally
     path('api/visits/<int:pk>', visit_detail), # For updating a specific visit
     path('api/translate', translate_text),
+    path('api/export', export_patients),
+    path('api/export-visits', export_visits),
     path('api/analytics', get_analytics),
     path('api/inventory', inventory_list),
     path('api/inventory/<int:pk>', inventory_detail),

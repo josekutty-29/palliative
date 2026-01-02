@@ -149,14 +149,38 @@
         <a href="patients.html">Patients</a>
         <a href="visits.html">Visits</a>
         <a href="equipment.html">Equipment</a>
-        <a href="reports.html">Reports</a>
+        <a href="analytics.html">Analytics</a>
         <a href="gis.html">GIS Map</a>
         <a href="voice.html">Voice Entry</a>
     </div>
 
     <div class="main">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-            <h1>Scheduled Visits</h1>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <h1>Scheduled Visits</h1>
+                <!-- Filters -->
+                <div
+                    style="display: flex; gap: 10px; align-items: center; background: white; padding: 5px 15px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <i class="fas fa-filter" style="color: #64748b;"></i>
+                    <input type="date" id="dateFilter" onchange="filterVisits()"
+                        style="border: none; outline: none; background: transparent; color: #334155; font-family: inherit;">
+                    <span style="color: #cbd5e1;">|</span>
+                    <input type="month" id="monthFilter" onchange="filterVisits()"
+                        style="border: none; outline: none; background: transparent; color: #334155; font-family: inherit;">
+                    <span style="color: #cbd5e1;">|</span>
+                    <button onclick="clearFilters()"
+                        style="background: none; border: none; cursor: pointer; color: #ef4444; font-size: 0.8rem; font-weight: 600;">Clear</button>
+                    <!-- Exports -->
+                    <span style="color: #cbd5e1;">|</span>
+                    <button onclick="exportVisits('excel')" title="Export Excel"
+                        style="background: none; border: none; cursor: pointer; color: #10b981; font-size: 1rem;"><i
+                            class="fas fa-file-excel"></i></button>
+                    <button onclick="exportVisits('pdf')" title="Export PDF"
+                        style="background: none; border: none; cursor: pointer; color: #ef4444; font-size: 1rem;"><i
+                            class="fas fa-file-pdf"></i></button>
+                </div>
+            </div>
+
             <button onclick="openScheduleModal()"
                 style="padding: 12px 24px; background: var(--accent-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
                 <i class="fas fa-plus"></i> Schedule Visit
@@ -346,28 +370,86 @@
                 });
         }
 
-        // --- Data Loading ---
+        // --- Data Loading & Filtering ---
+        let allVisits = []; // Master list
+
         function loadVisits() {
             fetch(`${API_BASE}/visits`)
                 .then(res => res.json())
                 .then(data => {
-                    const container = document.getElementById('visitList');
-                    container.innerHTML = '';
-                    data.forEach(v => {
-                        const statusClass = v.is_completed ? 'pill-completed' : 'pill-pending';
-                        const statusText = v.is_completed ? 'Completed' : 'Scheduled';
-
-                        container.innerHTML += `
-                        <div class="visit-card" onclick="openExecution(${v.id}, '${v.patient_name}', ${v.is_completed})">
-                            <div>
-                                <h3>${v.patient_name}</h3>
-                                <p style="color: var(--text-secondary);"><i class="far fa-calendar"></i> ${v.scheduled_date || v.visit_date}</p>
-                            </div>
-                            <span class="status-pill ${statusClass}">${statusText}</span>
-                        </div>
-                    `;
-                    });
+                    allVisits = data;
+                    filterVisits(); // Initial render
                 });
+        }
+
+        function filterVisits() {
+            const dateInput = document.getElementById('dateFilter').value;
+            const monthInput = document.getElementById('monthFilter').value;
+            const container = document.getElementById('visitList');
+            container.innerHTML = '';
+
+            const filtered = allVisits.filter(v => {
+                // Determine valid date from v (scheduled_date or visit_date)
+                const vDate = v.scheduled_date || v.visit_date; // Format YYYY-MM-DD
+
+                if (!vDate) return false;
+
+                // 1. Exact Date Filter
+                if (dateInput && vDate !== dateInput) {
+                    return false;
+                }
+
+                // 2. Month Filter (only if date is NOT set)
+                // If date is set, it overrides month anyway. If date is empty, check month.
+                if (!dateInput && monthInput) {
+                    // monthInput is "YYYY-MM", vDate is "YYYY-MM-DD"
+                    if (!vDate.startsWith(monthInput)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #64748b; padding: 20px;">No visits found for selected period</div>';
+                return;
+            }
+
+            filtered.forEach(v => {
+                const statusClass = v.is_completed ? 'pill-completed' : 'pill-pending';
+                const statusText = v.is_completed ? 'Completed' : 'Scheduled';
+                const dateDisplay = v.scheduled_date || v.visit_date;
+
+                container.innerHTML += `
+                <div class="visit-card" onclick="openExecution(${v.id}, '${v.patient_name}', ${v.is_completed})">
+                    <div>
+                        <h3>${v.patient_name}</h3>
+                        <p style="color: var(--text-secondary);"><i class="far fa-calendar"></i> ${dateDisplay}</p>
+                    </div>
+                    <span class="status-pill ${statusClass}">${statusText}</span>
+                </div>
+            `;
+            });
+        }
+
+        function clearFilters() {
+            document.getElementById('dateFilter').value = '';
+            document.getElementById('monthFilter').value = '';
+            filterVisits();
+        }
+
+        function exportVisits(format) {
+            const date = document.getElementById('dateFilter').value;
+            const month = document.getElementById('monthFilter').value;
+
+            const params = new URLSearchParams({
+                format: format,
+                date: date,
+                month: month
+            });
+
+            window.location.href = `${API_BASE}/export-visits?${params.toString()}`;
         }
 
         // --- Modals & Actions ---

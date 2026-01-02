@@ -152,7 +152,7 @@
         <a href="patients.html">Patients</a>
         <a href="visits.html">Visits</a>
         <a href="equipment.html">Equipment</a>
-        <a href="reports.html">Reports</a>
+        <a href="analytics.html">Analytics</a>
         <a href="gis.html">GIS Map</a>
         <a href="voice.html">Voice Entry</a>
     </div>
@@ -217,49 +217,25 @@
         </div>
     </div>
 
-    <!-- History Modal -->
-    <div id="historyModal" class="modal">
-        <div class="modal-content">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 id="histTitle">Item History</h2>
-                <button onclick="closeHistoryModal()"
-                    style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
-            </div>
+    <!-- Restock Modal -->
+    <div id="restockModal" class="modal">
+        <div class="modal-content" style="width: 400px;">
+            <h2>Restock Item</h2>
+            <p id="restockItemName" style="color: #64748b; margin-bottom: 20px;">...</p>
+            <form onsubmit="confirmRestock(event)">
+                <input type="hidden" id="restockId" name="id">
+                <label>Quantity to Add</label>
+                <input type="number" name="add_stock" required min="1" placeholder="e.g. 10">
 
-            <!-- Summary Widgets -->
-            <div class="stats-grid">
-                <div class="stat-card" style="border-bottom: 4px solid #3b82f6;">
-                    <h3><span id="statTotal">0</span></h3>
-                    <small>Total Allocated</small>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                    <button type="button" onclick="document.getElementById('restockModal').style.display='none'"
+                        style="padding: 10px 20px; border: none; background: #e2e8f0; border-radius: 6px; cursor: pointer;">Cancel</button>
+                    <button type="submit"
+                        style="padding: 10px 20px; border: none; background: #10b981; color: white; border-radius: 6px; cursor: pointer;">
+                        <i class="fas fa-plus-circle"></i> Add Stock
+                    </button>
                 </div>
-                <div class="stat-card" style="border-bottom: 4px solid #eab308;">
-                    <h3><span id="statActive">0</span></h3>
-                    <small>With Patients</small>
-                </div>
-                <div class="stat-card" style="border-bottom: 4px solid #10b981;">
-                    <h3><span id="statGood">0</span></h3>
-                    <small>Returned (Good)</small>
-                </div>
-                <div class="stat-card" style="border-bottom: 4px solid #ef4444;">
-                    <h3><span id="statBad">0</span></h3>
-                    <small>Returned (Damaged)</small>
-                </div>
-            </div>
-
-            <!-- Detailed Log Table -->
-            <h3>Usage Log</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Patient</th>
-                        <th>Issued Date</th>
-                        <th>Status</th>
-                        <th>Return Date</th>
-                        <th>Condition</th>
-                    </tr>
-                </thead>
-                <tbody id="histTable"></tbody>
-            </table>
+            </form>
         </div>
     </div>
 
@@ -278,6 +254,14 @@
 
         function closeHistoryModal() {
             document.getElementById('historyModal').style.display = 'none';
+        }
+
+        function openRestock(event, id, name) {
+            event.stopPropagation(); // Prevent opening history
+            document.getElementById('restockModal').style.display = 'flex';
+            document.getElementById('restockItemName').innerText = `Adding stock to: ${name}`;
+            document.getElementById('restockId').value = id;
+            document.querySelector('#restockModal input[name="add_stock"]').focus();
         }
 
         // Generate a random pastel color based on string input
@@ -302,13 +286,22 @@
 
             items.forEach(item => {
                 const color = stringToColor(item.item_name + item.id);
+                // Safe handling of name for onclick
+                const safeName = item.item_name.replace(/'/g, "\\'");
+
                 const html = `
-                    <div class="item-card" onclick="openHistory(${item.id})" style="border-left-color: ${color};">
+                    <div class="item-card" onclick="openHistory(${item.id})" style="border-left-color: ${color}; position: relative;">
                         <div>
                             <strong style="color: #334155;">${item.item_name}</strong>
                             <div style="font-size: 0.8rem; color: #64748b;">ID: #${item.id}</div> 
                         </div>
-                        <span class="count-badge" style="background: ${color}20; color: ${color}; border: 1px solid ${color};">${item.count} Units</span>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 5px;">
+                            <span class="count-badge" style="background: ${color}20; color: ${color}; border: 1px solid ${color};">${item.count} Units</span>
+                            <button onclick="openRestock(event, ${item.id}, '${safeName}')" 
+                                style="font-size: 0.7rem; padding: 4px 8px; background: #ecfdf5; color: #059669; border: 1px solid #059669; border-radius: 4px; cursor: pointer;">
+                                <i class="fas fa-plus"></i> Restock
+                            </button>
+                        </div>
                     </div>
                 `;
 
@@ -318,6 +311,32 @@
                     sponsorList.innerHTML += html;
                 }
             });
+        }
+
+        async function confirmRestock(e) {
+            e.preventDefault();
+            const id = document.getElementById('restockId').value;
+            const formData = new FormData(e.target);
+            const addStock = formData.get('add_stock');
+
+            try {
+                const res = await fetch(`${API_BASE}/inventory/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ add_stock: addStock })
+                });
+
+                if (res.ok) {
+                    document.getElementById('restockModal').style.display = 'none';
+                    loadInventory(); // Refresh
+                    e.target.reset();
+                } else {
+                    alert("Failed to update stock");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Error updating stock");
+            }
         }
 
         async function openHistory(id) {
