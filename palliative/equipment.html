@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Equipment Management</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .inventory-section {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            width: 80%;
+            /* Wider for history */
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Stats Cards in Modal */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 2rem;
+            margin: 5px 0;
+            color: var(--accent-color);
+        }
+
+        /* History Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .item-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #f1f5f9;
+            transition: 0.2s;
+            cursor: pointer;
+            /* Clickable */
+            border-left: 4px solid transparent;
+        }
+
+        .item-card:hover {
+            background: #feffff;
+            transform: scale(1.01);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+
+        .count-badge {
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <h2>Head Nurse</h2>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="patients.html">Patients</a>
+        <a href="visits.html">Visits</a>
+        <a href="equipment.html">Equipment</a>
+        <a href="reports.html">Reports</a>
+        <a href="gis.html">GIS Map</a>
+        <a href="voice.html">Voice Entry</a>
+    </div>
+
+    <div class="main">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <h1>Inventory Management</h1>
+            <button onclick="openAddModal()"
+                style="padding: 12px 24px; background: var(--accent-color); color: white; border: none; border-radius: 8px; cursor: pointer;">
+                <i class="fas fa-plus"></i> Add New Item
+            </button>
+        </div>
+
+        <div class="grid-container">
+            <!-- Government Column -->
+            <div class="inventory-section">
+                <div class="section-header">
+                    <h2 style="color: #2563eb;"><i class="fas fa-landmark"></i> Government Provided</h2>
+                </div>
+                <div id="govtList">
+                    <!-- Items go here -->
+                </div>
+            </div>
+
+            <!-- Sponsorship Column -->
+            <div class="inventory-section">
+                <div class="section-header">
+                    <h2 style="color: #10b981;"><i class="fas fa-hand-holding-heart"></i> Sponsorship</h2>
+                </div>
+                <div id="sponsorList">
+                    <!-- Items go here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Item Modal -->
+    <div id="addModal" class="modal">
+        <div class="modal-content" style="width: 400px;">
+            <h2>Add New Stock</h2>
+            <form onsubmit="addItem(event)">
+                <label>Item Name</label>
+                <input type="text" name="item_name" required>
+
+                <label>Category</label>
+                <select name="category">
+                    <option value="Government">Government Provided</option>
+                    <option value="Sponsorship">Sponsorship</option>
+                </select>
+
+                <label>Quantity</label>
+                <input type="number" name="count" required min="0">
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" onclick="closeAddModal()"
+                        style="padding: 10px 20px; border: none; background: #e2e8f0; border-radius: 6px; cursor: pointer;">Cancel</button>
+                    <button type="submit"
+                        style="padding: 10px 20px; border: none; background: var(--accent-color); color: white; border-radius: 6px; cursor: pointer;">Add
+                        Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 id="histTitle">Item History</h2>
+                <button onclick="closeHistoryModal()"
+                    style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+
+            <!-- Summary Widgets -->
+            <div class="stats-grid">
+                <div class="stat-card" style="border-bottom: 4px solid #3b82f6;">
+                    <h3><span id="statTotal">0</span></h3>
+                    <small>Total Allocated</small>
+                </div>
+                <div class="stat-card" style="border-bottom: 4px solid #eab308;">
+                    <h3><span id="statActive">0</span></h3>
+                    <small>With Patients</small>
+                </div>
+                <div class="stat-card" style="border-bottom: 4px solid #10b981;">
+                    <h3><span id="statGood">0</span></h3>
+                    <small>Returned (Good)</small>
+                </div>
+                <div class="stat-card" style="border-bottom: 4px solid #ef4444;">
+                    <h3><span id="statBad">0</span></h3>
+                    <small>Returned (Damaged)</small>
+                </div>
+            </div>
+
+            <!-- Detailed Log Table -->
+            <h3>Usage Log</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Patient</th>
+                        <th>Issued Date</th>
+                        <th>Status</th>
+                        <th>Return Date</th>
+                        <th>Condition</th>
+                    </tr>
+                </thead>
+                <tbody id="histTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000/api';
+
+        document.addEventListener('DOMContentLoaded', loadInventory);
+
+        function openAddModal() {
+            document.getElementById('addModal').style.display = 'flex';
+        }
+
+        function closeAddModal() {
+            document.getElementById('addModal').style.display = 'none';
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').style.display = 'none';
+        }
+
+        // Generate a random pastel color based on string input
+        function stringToColor(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+            return '#' + "00000".substring(0, 6 - c.length) + c;
+        }
+
+        async function loadInventory() {
+            const response = await fetch(`${API_BASE}/inventory`);
+            const items = await response.json();
+
+            const govtList = document.getElementById('govtList');
+            const sponsorList = document.getElementById('sponsorList');
+
+            govtList.innerHTML = '';
+            sponsorList.innerHTML = '';
+
+            items.forEach(item => {
+                const color = stringToColor(item.item_name + item.id);
+                const html = `
+                    <div class="item-card" onclick="openHistory(${item.id})" style="border-left-color: ${color};">
+                        <div>
+                            <strong style="color: #334155;">${item.item_name}</strong>
+                            <div style="font-size: 0.8rem; color: #64748b;">ID: #${item.id}</div> 
+                        </div>
+                        <span class="count-badge" style="background: ${color}20; color: ${color}; border: 1px solid ${color};">${item.count} Units</span>
+                    </div>
+                `;
+
+                if (item.category === 'Government') {
+                    govtList.innerHTML += html;
+                } else {
+                    sponsorList.innerHTML += html;
+                }
+            });
+        }
+
+        async function openHistory(id) {
+            document.getElementById('historyModal').style.display = 'flex';
+            document.getElementById('histTable').innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
+
+            const res = await fetch(`${API_BASE}/inventory/${id}/history`);
+            const data = await res.json();
+
+            // 1. Set Header
+            document.getElementById('histTitle').innerText = `${data.item.item_name} (ID: #${data.item.id})`;
+
+            // 2. Set Stats
+            document.getElementById('statTotal').innerText = data.stats.total_allocated;
+            document.getElementById('statActive').innerText = data.stats.with_patient;
+            document.getElementById('statGood').innerText = data.stats.returned_good;
+            document.getElementById('statBad').innerText = data.stats.returned_damaged;
+
+            // 3. Populate Table
+            const tbody = document.getElementById('histTable');
+            tbody.innerHTML = '';
+
+            if (data.history.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#94a3b8;">No usage history found.</td></tr>';
+                return;
+            }
+
+            data.history.forEach(log => {
+                let statusHtml = '';
+                let conditionHtml = '-';
+
+                if (log.return_date) {
+                    statusHtml = `<span style="color: #059669; font-weight:600;"><i class="fas fa-check-circle"></i> Returned</span>`;
+                    conditionHtml = log.is_damaged
+                        ? `<span style="color: #ef4444; font-weight:600;">Damaged</span>`
+                        : `<span style="color: #059669;">Good</span>`;
+                } else {
+                    if (log.is_returnable) {
+                        statusHtml = `<span style="color: #d97706; font-weight:600;"><i class="fas fa-clock"></i> With Patient</span>`;
+                    } else {
+                        statusHtml = `<span style="color: #64748b;">Consumable</span>`;
+                    }
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${log.patient_name}</strong></td>
+                        <td>${log.allocation_date}</td>
+                        <td>${statusHtml}</td>
+                        <td>${log.return_date || '-'}</td>
+                        <td>${conditionHtml}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function addItem(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+
+            await fetch(`${API_BASE}/inventory`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            closeAddModal();
+            loadInventory();
+            e.target.reset();
+        }
+    </script>
+
+</body>
+
+</html>

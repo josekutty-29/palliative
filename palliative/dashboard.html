@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Head Nurse Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <h2>Head Nurse</h2>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="patients.html">Patients</a>
+        <a href="visits.html">Visits</a>
+        <a href="equipment.html">Equipment</a>
+        <a href="reports.html">Reports</a>
+        <a href="gis.html">GIS Map</a>
+        <a href="voice.html">Voice Entry</a>
+    </div>
+
+    <div class="main">
+        <h1>Dashboard Overview</h1>
+
+        <div class="cards">
+            <div class="card">
+                <img src="images/patient.png">
+                <h2 id="totalPatients">-</h2>
+                <p>Total Patients</p>
+            </div>
+
+            <div class="card">
+                <img src="images/doctor.png">
+                <h2 id="activePatients">-</h2>
+                <p>Active Patients</p>
+            </div>
+
+            <div class="card">
+                <img src="images/hospital.png">
+                <h2 id="criticalCases">-</h2>
+                <p>Critical Cases</p>
+            </div>
+
+            <div class="card">
+                <img src="images/calendar.png" style="width: 50px; opacity: 0.8;">
+                <h2 id="visitsToday">-</h2>
+                <p>Visits Completed</p>
+            </div>
+        </div>
+
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStats();
+        });
+
+        const API_BASE = 'http://127.0.0.1:8000/api';
+
+        async function loadStats() {
+            try {
+                // 1. Fetch Analytics
+                const res = await fetch(`${API_BASE}/analytics`);
+                const data = await res.json();
+
+                // Update Cards
+                document.getElementById('totalPatients').innerText = data.total;
+                document.getElementById('activePatients').innerText = data.status.active;
+                document.getElementById('criticalCases').innerText = data.status.severe;
+
+                // 2. Fetch Visits for Today count
+                const visitRes = await fetch(`${API_BASE}/visits`);
+                const visits = await visitRes.json();
+
+                // Filter for today's visits AND completed (has service_performed)
+                // Use local time, not UTC (toISOString uses UTC)
+                const now = new Date();
+                const offset = now.getTimezoneOffset() * 60000;
+                const today = new Date(now - offset).toISOString().split('T')[0];
+
+                const todayVisits = visits.filter(v => v.scheduled_date === today && v.service_performed).length;
+
+                document.getElementById('visitsToday').innerText = todayVisits;
+
+            } catch (e) {
+                console.error("Error loading stats:", e);
+            }
+        }
+
+
+    </script>
+
+</body>
+
+</html>

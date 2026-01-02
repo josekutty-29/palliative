@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Patients Registry</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* New Premium Button Style */
+        .btn-premium {
+            background: linear-gradient(135deg, #6366f1, #2563eb);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            /* Pill shape */
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn-premium:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
+            background: linear-gradient(135deg, #4f46e5, #1d4ed8);
+        }
+
+        .btn-premium i {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px;
+            border-radius: 50%;
+            font-size: 0.8rem;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+
+        .filter-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        /* Premium View Button */
+        .btn-view-premium {
+            background: rgba(37, 99, 235, 0.1);
+            color: #2563eb;
+            border: 1px solid rgba(37, 99, 235, 0.2);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+        }
+
+        .btn-view-premium:hover {
+            background: #2563eb;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <h2>Head Nurse</h2>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="patients.html">Patients</a>
+        <a href="visits.html">Visits</a>
+        <a href="equipment.html">Equipment</a>
+        <a href="reports.html">Reports</a>
+        <a href="gis.html">GIS Map</a>
+        <a href="voice.html">Voice Entry</a>
+    </div>
+
+    <div class="main">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1>Patient Registry</h1>
+            <!-- Button linking to new page -->
+            <button class="btn-premium" onclick="window.location.href='register_patient.html'">
+                <i class="fas fa-plus"></i> Register Patient
+            </button>
+        </div>
+
+        <!-- Advanced Search & Filter Toolbar -->
+        <div
+            style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <!-- Row 1: Search -->
+            <div style="margin-bottom: 15px;">
+                <input type="text" id="searchTerm" placeholder="Search by Name or ID..." oninput="filterPatients()"
+                    style="margin: 0; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; width: 100%;">
+            </div>
+
+            <!-- Row 2: Filters -->
+            <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+                <!-- Condition Filter -->
+                <div style="flex: 1; min-width: 160px;">
+                    <label class="filter-label">Status/Condition</label>
+                    <select id="filterStatus" onchange="filterPatients()" style="margin: 0;">
+                        <option value="">All</option>
+                        <option value="Alive">Alive (All Active)</option>
+                        <optgroup label="Physical Condition">
+                            <option value="Bedridden">Bedridden</option>
+                            <option value="Not Bedridden">Not Bedridden</option>
+                        </optgroup>
+                        <optgroup label="Severity">
+                            <option value="Stable">Stable</option>
+                            <option value="Moderate">Moderate</option>
+                            <option value="Severe">Severe</option>
+                        </optgroup>
+                        <option value="Dead">Expired (Deceased)</option>
+                    </select>
+                </div>
+
+                <!-- Custom Age Range -->
+                <div style="flex: 1; min-width: 180px; display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label class="filter-label">Min Age</label>
+                        <input type="number" id="minAge" placeholder="0" oninput="filterPatients()"
+                            style="margin: 0; padding: 10px;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label class="filter-label">Max Age</label>
+                        <input type="number" id="maxAge" placeholder="100" oninput="filterPatients()"
+                            style="margin: 0; padding: 10px;">
+                    </div>
+                </div>
+
+                <!-- Disease (Dynamic) -->
+                <div style="flex: 1; min-width: 140px;">
+                    <label class="filter-label">Disease</label>
+                    <select id="filterDisease" onchange="filterPatients()" style="margin: 0;">
+                        <option value="">All Diseases</option>
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+
+                <!-- Material (Dynamic) -->
+                <div style="flex: 1; min-width: 140px;">
+                    <label class="filter-label">Material Allocated</label>
+                    <select id="filterMaterial" onchange="filterPatients()" style="margin: 0;">
+                        <option value="">All Equipment</option>
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Condition</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="patientList">
+                <!-- Data goes here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000/api';
+        let allPatients = []; // Master list
+
+        document.addEventListener('DOMContentLoaded', loadPatients);
+
+        async function loadPatients() {
+            try {
+                const response = await fetch(`${API_BASE}/patients`);
+                allPatients = await response.json();
+
+                populateDynamicFilters();
+                filterPatients(); // Initial render with filters applied
+            } catch (error) {
+                console.error("Error loading patients:", error);
+            }
+        }
+
+        function populateDynamicFilters() {
+            // Extract unique diseases
+            const diseases = [...new Set(allPatients.map(p => p.disease).filter(d => d))].sort();
+            const diseaseSelect = document.getElementById('filterDisease');
+            diseases.forEach(d => {
+                diseaseSelect.innerHTML += `<option value="${d}">${d}</option>`;
+            });
+
+            // Extract unique materials from all patients
+            const materials = new Set();
+            allPatients.forEach(p => {
+                if (p.allocations && Array.isArray(p.allocations)) {
+                    p.allocations.forEach(m => {
+                        // Clean up name (remove category brackets if needed, or keep full)
+                        materials.add(m);
+                    });
+                }
+            });
+            const matSelect = document.getElementById('filterMaterial');
+            [...materials].sort().forEach(m => {
+                matSelect.innerHTML += `<option value="${m}">${m}</option>`;
+            });
+        }
+
+        function filterPatients() {
+            const term = document.getElementById('searchTerm').value.toLowerCase();
+            const statusFilter = document.getElementById('filterStatus').value;
+
+            const minAgeVal = document.getElementById('minAge').value;
+            const maxAgeVal = document.getElementById('maxAge').value;
+            const minAge = minAgeVal ? parseInt(minAgeVal) : 0;
+            const maxAge = maxAgeVal ? parseInt(maxAgeVal) : 150;
+
+            const diseaseFilter = document.getElementById('filterDisease').value;
+            const materialFilter = document.getElementById('filterMaterial').value;
+
+            let filtered = allPatients.filter(p => {
+                // 1. Search Term
+                const matchesSearch = p.full_name.toLowerCase().includes(term) ||
+                    p.id.toString().includes(term);
+
+                // 2. Status / Condition Logic (Updated)
+                let matchesStatus = true;
+                if (statusFilter) {
+                    if (statusFilter === 'Dead') {
+                        matchesStatus = p.is_expired;
+                    } else if (statusFilter === 'Alive') {
+                        matchesStatus = !p.is_expired; // Any living patient
+                    } else if (statusFilter === 'Stable') {
+                        // "Active" from legacy data is treated effectively as "Stable"
+                        matchesStatus = (p.current_status === 'Stable' || p.current_status === 'Active') && !p.is_expired;
+                    } else if (statusFilter === 'Bedridden' || statusFilter === 'Not Bedridden') {
+                        // Check the fixed 'condition' field
+                        matchesStatus = p.condition === statusFilter && !p.is_expired;
+                    } else {
+                        // Moderate / Severe
+                        matchesStatus = p.current_status === statusFilter && !p.is_expired;
+                    }
+                }
+
+                // 3. Custom Age Range
+                const matchesAge = p.age >= minAge && p.age <= maxAge;
+
+                // 4. Disease
+                let matchesDisease = true;
+                if (diseaseFilter) matchesDisease = p.disease === diseaseFilter;
+
+                // 5. Material
+                let matchesMaterial = true;
+                if (materialFilter) {
+                    matchesMaterial = p.allocations && p.allocations.some(m => m === materialFilter);
+                }
+
+                return matchesSearch && matchesStatus && matchesAge && matchesDisease && matchesMaterial;
+            });
+
+            // Sorting
+            filtered.sort((a, b) => {
+                // Primary Sort: Expired Status (Active Top, Expired Bottom)
+                const aExpired = a.is_expired ? 1 : 0;
+                const bExpired = b.is_expired ? 1 : 0;
+                if (aExpired !== bExpired) return aExpired - bExpired;
+
+                // Secondary Sort: Selected Option
+                /* Since the sort dropdown was removed in previous step (check if it exists or default to ID),
+                   assuming default is Newest First if element missing, or re-add it if needed.
+                   The previous code block I see only has 'minAge' etc, I might have overwritten the sortBy logic unintentionally 
+                   or it's implied. Let's stick to Newest First by default for now unless element exists. 
+                   Wait, I see 'sortBy' was removed in "Refine Patient Filters" step 774/780? 
+                   Let me check the file content I just read. 
+                   Ah, "sortBy" dropdown IS REMOVED in the current file content provided in Context 780.
+                   It was replaced by the advanced filters.
+                   So I will default to ID desc (Newest First).
+                */
+                return b.id - a.id;
+            });
+
+            renderTable(filtered);
+        }
+
+        function renderTable(patients) {
+            const tbody = document.getElementById('patientList');
+            tbody.innerHTML = '';
+
+            if (patients.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">No patients match filters</td></tr>';
+                return;
+            }
+
+            patients.forEach(p => {
+                let statusClass = '';
+                let statusText = p.current_status;
+                let rowStyle = '';
+
+                // DATA NORMALIZATION
+                if (statusText === 'Active') statusText = 'Stable';
+
+                if (p.is_expired) {
+                    statusClass = 'status-expired';
+                    statusText = 'Expired';
+                    // Dull / Faded indication for expired (to contrast with alive)
+                    rowStyle = 'background-color: #f8fafc; color: #94a3b8; opacity: 0.75; filter: grayscale(1);';
+                } else {
+                    statusClass = `status-${statusText.toLowerCase()}`;
+                }
+
+                const row = `
+                    <tr onclick="window.location.href='patient_details.html?id=${p.id}'" style="cursor: pointer; ${rowStyle}">
+                        <td style="font-weight: bold; color: #3b82f6;">${p.id}</td>
+                        <td><strong>${p.full_name}</strong><br><span style="font-size:0.8em; opacity: 0.8;">${p.disease}</span></td>
+                        <td>${p.age}</td>
+                        <td>${p.condition}</td>
+                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td><button class="btn-view-premium">View <i class="fas fa-arrow-right" style="font-size: 0.8em;"></i></button></td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+    </script>
+
+</body>
+
+</html>

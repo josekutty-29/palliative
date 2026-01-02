@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>GIS Map</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <style>
+        #map {
+            height: 600px;
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .main {
+            padding-right: 40px;
+            /* fix spacing */
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <h2>Head Nurse</h2>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="patients.html">Patients</a>
+        <a href="visits.html">Visits</a>
+        <a href="equipment.html">Equipment</a>
+        <a href="reports.html">Reports</a>
+        <a href="gis.html">GIS Map</a>
+        <a href="voice.html">Voice Entry</a>
+    </div>
+
+    <div class="main">
+        <h1>Patient Location Map</h1>
+        <div id="map"></div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+        // Initialize map focused on Cochin (from server data context)
+        var map = L.map('map').setView([9.9312, 76.2673], 13);
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+
+        // Fetch data from backend
+        fetch('http://127.0.0.1:8000/api/patients')
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(patient => {
+                    let markerColor = patient.status === 'Critical' ? 'red' : 'blue';
+
+                    // Detailed popup
+                    let popupContent = `
+                    <b>${patient.name}</b><br>
+                    Condition: ${patient.condition}<br>
+                    Status: <span style="color:${markerColor === 'red' ? 'red' : 'green'}">${patient.status}</span>
+                `;
+
+                    L.marker([patient.lat, patient.lng])
+                        .addTo(map)
+                        .bindPopup(popupContent);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading map data:', error);
+                alert("Backend not running using `node server.js`. Please start the server.");
+            });
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Voice Input (Malayalam)</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .voice-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 70vh;
+        }
+
+        .record-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            border: none;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .record-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 15px 35px rgba(239, 68, 68, 0.6);
+        }
+
+        .record-btn.listening {
+            animation: pulse 1.5s infinite;
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 20px rgba(16, 185, 129, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+
+        .output-box {
+            width: 100%;
+            max-width: 600px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 16px;
+            padding: 20px;
+            font-size: 1.2rem;
+            color: var(--text-primary);
+            resize: none;
+            font-family: 'Poppins', sans-serif;
+            transition: 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .output-box:focus {
+            background: rgba(255, 255, 255, 0.8);
+            border-color: #2563eb;
+            outline: none;
+            box-shadow: 0 5px 20px rgba(37, 99, 235, 0.2);
+        }
+
+        .status-text {
+            color: white;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            min-height: 24px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn-action {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: white;
+            color: #2563eb;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <h2>Head Nurse</h2>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="patients.html">Patients</a>
+        <a href="visits.html">Visits</a>
+        <a href="equipment.html">Equipment</a>
+        <a href="reports.html">Reports</a>
+        <a href="gis.html">GIS Map</a>
+        <a href="voice.html">Voice Entry</a>
+    </div>
+
+    <div class="main">
+        <h1>Voice-Based Entry (Malayalam)</h1>
+
+        <div class="voice-container">
+            <p id="status" class="status-text">Click microphone to start recording...</p>
+
+            <button id="micBtn" class="record-btn" onclick="toggleVoice()">
+                <i class="fas fa-microphone"></i>
+            </button>
+
+            <textarea id="output" class="output-box"
+                placeholder="സംസാരിക്കുന്നത് ഇവിടെ കാണാം... (Speech text will appear here)"></textarea>
+
+            <div class="controls">
+                <button class="btn-action" onclick="copyText()">Copy Text</button>
+                <button class="btn-action" onclick="clearText()" style="color: #ef4444;">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let recognition;
+        let isRecording = false;
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = "ml-IN"; // Set language to Malayalam
+            recognition.continuous = true; // Keep recording until stopped
+            recognition.interimResults = true; // Show results while talking
+
+            recognition.onstart = function () {
+                isRecording = true;
+                document.getElementById("status").innerText = "Listening in Malayalam... (സംസാരിക്കൂ)";
+                document.getElementById("micBtn").classList.add("listening");
+                document.getElementById("micBtn").innerHTML = '<i class="fas fa-stop"></i>';
+            };
+
+            recognition.onend = function () {
+                isRecording = false;
+                document.getElementById("status").innerText = "Click microphone to start recording...";
+                document.getElementById("micBtn").classList.remove("listening");
+                document.getElementById("micBtn").innerHTML = '<i class="fas fa-microphone"></i>';
+            };
+
+            recognition.onresult = function (event) {
+                let finalTranscript = "";
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        // Optional: You can handle interim results here if needed
+                    }
+                }
+                if (finalTranscript) {
+                    // Append to existing text with a space
+                    const output = document.getElementById("output");
+                    output.value = output.value ? output.value + " " + finalTranscript : finalTranscript;
+                }
+            };
+
+            recognition.onerror = function (event) {
+                console.error("Speech recognition error", event.error);
+                document.getElementById("status").innerText = "Error: " + event.error;
+                isRecording = false;
+                document.getElementById("micBtn").classList.remove("listening");
+            };
+
+        } else {
+            alert("Sorry, your browser does not support Web Speech API. Please use Chrome or Edge.");
+        }
+
+        function toggleVoice() {
+            if (!recognition) return;
+
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        }
+
+        function copyText() {
+            const copyText = document.getElementById("output");
+            copyText.select();
+            document.execCommand("copy");
+            alert("Text copied to clipboard!");
+        }
+
+        function clearText() {
+            document.getElementById("output").value = "";
+        }
+    </script>
+
+</body>
+
+</html>

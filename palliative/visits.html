@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Visits Management</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Voice Controls */
+        .voice-box {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .mic-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #ef4444;
+            color: white;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mic-btn.recording {
+            animation: pulse 1.5s infinite;
+            background: #22c55e;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 15px rgba(34, 197, 94, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+            }
+        }
+
+        .translation-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            resize: vertical;
+        }
+
+        /* List Styles */
+        .visit-card {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .visit-card:hover {
+            transform: translateY(-2px);
+            background: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .status-pill {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .pill-pending {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .pill-completed {
+            background: #dcfce7;
+            color: #166534;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <h2>Head Nurse</h2>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="patients.html">Patients</a>
+        <a href="visits.html">Visits</a>
+        <a href="equipment.html">Equipment</a>
+        <a href="reports.html">Reports</a>
+        <a href="gis.html">GIS Map</a>
+        <a href="voice.html">Voice Entry</a>
+    </div>
+
+    <div class="main">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <h1>Scheduled Visits</h1>
+            <button onclick="openScheduleModal()"
+                style="padding: 12px 24px; background: var(--accent-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                <i class="fas fa-plus"></i> Schedule Visit
+            </button>
+        </div>
+
+        <div id="visitList">
+            <!-- Visits loaded here -->
+        </div>
+    </div>
+
+    <!-- Schedule Modal -->
+    <div id="scheduleModal" class="modal">
+        <div class="modal-content">
+            <h2>Schedule New Visit</h2>
+            <form onsubmit="scheduleVisit(event)">
+                <label style="display: block; margin-bottom: 8px;">Select Patient</label>
+                <select id="patientSelect" name="patient_id"
+                    style="width: 100%; padding: 10px; margin-bottom: 20px; border-radius: 8px;" required>
+                    <!-- Patients loaded here -->
+                </select>
+
+                <label style="display: block; margin-bottom: 8px;">Date</label>
+                <input type="date" name="scheduled_date"
+                    style="width: 100%; padding: 10px; margin-bottom: 20px; border-radius: 8px;" required>
+
+                <div style="text-align: right;">
+                    <button type="button" onclick="closeModal('scheduleModal')"
+                        style="padding: 10px 20px; margin-right: 10px; background: #e2e8f0; border: none; border-radius: 8px; cursor: pointer;">Cancel</button>
+                    <button type="submit"
+                        style="padding: 10px 20px; background: var(--accent-color); color: white; border: none; border-radius: 8px; cursor: pointer;">Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Execution Modal -->
+    <div id="executionModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <h2 id="execPatientName">Visit Details</h2>
+                <button onclick="closeModal('executionModal')"
+                    style="background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
+            </div>
+
+            <form id="execForm" onsubmit="completeVisit(event)">
+                <input type="hidden" id="execVisitId">
+
+                <!-- Voice Section: Symptoms -->
+                <div class="voice-box">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <label><strong>Current Symptoms</strong> (Voice Input)</label>
+                        <button type="button" class="mic-btn" onclick="toggleRecord('symptoms')"><i
+                                class="fas fa-microphone"></i></button>
+                    </div>
+                    <div class="translation-grid">
+                        <div>
+                            <small>Malayalam (Original)</small>
+                            <textarea id="symptoms_ml" name="symptoms_malayalam" rows="6"
+                                placeholder="സംസാരിക്കുക..."></textarea>
+                        </div>
+                        <div>
+                            <small>English (Translated)</small>
+                            <textarea id="symptoms_en" name="symptoms_english" rows="6"
+                                placeholder="Translated text..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Voice Section: Notes -->
+                <div class="voice-box">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <label><strong>General Condition / Notes</strong> (Voice Input)</label>
+                        <button type="button" class="mic-btn" onclick="toggleRecord('notes')"><i
+                                class="fas fa-microphone"></i></button>
+                    </div>
+                    <div class="translation-grid">
+                        <div>
+                            <small>Malayalam</small>
+                            <textarea id="notes_ml" name="notes_malayalam" rows="6"></textarea>
+                        </div>
+                        <div>
+                            <small>English</small>
+                            <textarea id="notes_en" name="notes_english" rows="6"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Other Details -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 8px;">Service Performed</label>
+                        <input type="text" name="service_performed"
+                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1;" required>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 8px;">Time Spent</label>
+                        <input type="text" name="time_spent" placeholder="e.g. 45 mins"
+                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                    </div>
+                </div>
+
+                <label style="display: block; margin-bottom: 8px;">Condition Assessment</label>
+                <select name="condition_assessment"
+                    style="width: 100%; padding: 10px; margin-bottom: 30px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                    <option value="Active">Active (Stable)</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Severe">Severe</option>
+                </select>
+
+                <button type="submit"
+                    style="width: 100%; padding: 15px; background: #22c55e; color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer;">
+                    Complete Visit
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000/api';
+        let recognition;
+        let currentField = null;
+
+        // --- Init ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadVisits();
+            setupSpeech();
+        });
+
+        function setupSpeech() {
+            if ('webkitSpeechRecognition' in window) {
+                recognition = new webkitSpeechRecognition();
+                recognition.lang = 'ml-IN';
+                recognition.continuous = false;
+                recognition.interimResults = false;
+
+                recognition.onresult = function (event) {
+                    const transcript = event.results[0][0].transcript;
+                    if (currentField) {
+                        const mlField = document.getElementById(`${currentField}_ml`);
+                        const enField = document.getElementById(`${currentField}_en`);
+
+                        // Append text with a newline if field is not empty
+                        const prefix = mlField.value ? "\n" : "";
+                        mlField.value += prefix + transcript;
+
+                        // Translate just the new chunk and append
+                        translateAndAppend(transcript, enField);
+                    }
+                    stopRecord();
+                };
+
+                recognition.onerror = () => stopRecord();
+                recognition.onend = () => stopRecord();
+            }
+        }
+
+        function toggleRecord(field) {
+            if (!recognition) { alert("Speech API not supported"); return; }
+
+            currentField = field;
+            const btn = document.querySelector(`button[onclick="toggleRecord('${field}')"]`);
+
+            if (btn.classList.contains('recording')) {
+                recognition.stop();
+            } else {
+                recognition.start();
+                btn.classList.add('recording');
+            }
+        }
+
+        function stopRecord() {
+            document.querySelectorAll('.mic-btn').forEach(b => b.classList.remove('recording'));
+        }
+
+        function translateAndAppend(text, targetElement) {
+            fetch(`${API_BASE}/translate`, {
+                method: 'POST',
+                body: JSON.stringify({ text: text })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    const prefix = targetElement.value ? "\n" : "";
+                    targetElement.value += prefix + data.translated;
+                });
+        }
+
+        // --- Data Loading ---
+        function loadVisits() {
+            fetch(`${API_BASE}/visits`)
+                .then(res => res.json())
+                .then(data => {
+                    const container = document.getElementById('visitList');
+                    container.innerHTML = '';
+                    data.forEach(v => {
+                        const statusClass = v.is_completed ? 'pill-completed' : 'pill-pending';
+                        const statusText = v.is_completed ? 'Completed' : 'Scheduled';
+
+                        container.innerHTML += `
+                        <div class="visit-card" onclick="openExecution(${v.id}, '${v.patient_name}', ${v.is_completed})">
+                            <div>
+                                <h3>${v.patient_name}</h3>
+                                <p style="color: var(--text-secondary);"><i class="far fa-calendar"></i> ${v.scheduled_date || v.visit_date}</p>
+                            </div>
+                            <span class="status-pill ${statusClass}">${statusText}</span>
+                        </div>
+                    `;
+                    });
+                });
+        }
+
+        // --- Modals & Actions ---
+        function openScheduleModal() {
+            document.getElementById('scheduleModal').style.display = 'flex';
+            // Load patients
+            fetch(`${API_BASE}/patients`)
+                .then(res => res.json())
+                .then(data => {
+                    const select = document.getElementById('patientSelect');
+                    select.innerHTML = '';
+                    data.forEach(p => {
+                        select.innerHTML += `<option value="${p.id}">${p.full_name} (ID: ${p.id})</option>`;
+                    });
+                });
+        }
+
+        function scheduleVisit(e) {
+            e.preventDefault();
+            const data = {
+                patient_id: e.target.patient_id.value,
+                scheduled_date: e.target.scheduled_date.value
+            };
+            fetch(`${API_BASE}/visits`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }).then(() => {
+                closeModal('scheduleModal');
+                loadVisits();
+            });
+        }
+
+        async function openExecution(visitId, pName, isCompleted) {
+            const modal = document.getElementById('executionModal');
+            const form = document.getElementById('execForm');
+            const btn = form.querySelector('button[type="submit"]');
+
+            // Fetch View Details
+            const response = await fetch(`${API_BASE}/visits/${visitId}`);
+            const visit = await response.json();
+
+            modal.style.display = 'flex';
+            document.getElementById('execPatientName').innerText = isCompleted ? `Completed Visit: ${pName}` : `Visit: ${pName}`;
+            document.getElementById('execVisitId').value = visitId;
+
+            // Populate fields
+            document.getElementById('symptoms_ml').value = visit.symptoms_malayalam || '';
+            document.getElementById('symptoms_en').value = visit.symptoms_english || '';
+            document.getElementById('notes_ml').value = visit.notes_malayalam || '';
+            document.getElementById('notes_en').value = visit.notes_english || '';
+            form.service_performed.value = visit.service_performed || '';
+            form.time_spent.value = visit.time_spent || '';
+            form.condition_assessment.value = visit.condition_assessment || 'Active';
+
+            // Handle Read-Only State
+            const inputs = form.querySelectorAll('input, textarea, select, button.mic-btn');
+            inputs.forEach(el => el.disabled = isCompleted);
+
+            if (isCompleted) {
+                btn.style.display = 'none';
+            } else {
+                btn.style.display = 'block';
+            }
+        }
+
+        function completeVisit(e) {
+            e.preventDefault();
+            const id = document.getElementById('execVisitId').value;
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            data.is_completed = true;
+            data.visit_date = new Date().toISOString().split('T')[0]; // Set actual date to today
+
+            fetch(`${API_BASE}/visits/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }).then(() => {
+                closeModal('executionModal');
+                loadVisits();
+            });
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+            stopRecord();
+        }
+    </script>
+
+</body>
+
+</html>

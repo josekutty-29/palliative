@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Palliative Care Login</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="login-body">
+
+    <div class="login-box">
+        <h1 style="color: white; margin-bottom: 10px; font-size: 2rem;">Welcome Back</h1>
+        <h3 style="color: #e2e8f0; margin-bottom: 30px; font-weight: 400;">Palliative Care Portal</h3>
+
+        <div class="input-group">
+            <input type="text" placeholder="Username" id="username">
+        </div>
+        <div class="input-group">
+            <input type="password" placeholder="Password" id="password">
+        </div>
+
+        <button onclick="login()">Sign In</button>
+    </div>
+
+    <script>
+        function login() {
+            let user = document.getElementById("username").value;
+
+            if (user === "admin") {
+                window.location.href = "http://127.0.0.1:8000/admin";
+            } else if (user === "headnurse") {
+                window.location.href = "dashboard.html";
+            } else {
+                alert("Invalid credentials! Try 'headnurse' or 'admin'");
+            }
+        }
+    </script>
+
+</body>
+
+</html>
